@@ -1,7 +1,8 @@
-package com.saiferwp.weatheronvoicecommand
+package com.saiferwp.weatheronvoicecommand.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.saiferwp.weatheronvoicecommand.R
 import com.saiferwp.weatheronvoicecommand.ui.main.MainFragment
 
 class MainActivity : AppCompatActivity() {
