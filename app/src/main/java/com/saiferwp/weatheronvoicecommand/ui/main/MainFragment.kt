@@ -8,23 +8,31 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.saiferwp.weatheronvoicecommand.R
 import com.saiferwp.weatheronvoicecommand.misc.PermissionCode
 import com.saiferwp.weatheronvoicecommand.misc.checkPermissions
 import com.saiferwp.weatheronvoicecommand.misc.wereAllPermissionsGranted
+import kotlinx.android.synthetic.main.main_fragment.*
 import kotterknife.bindView
 
 
 class MainFragment : Fragment() {
 
-    private val textViewMessage: TextView by bindView(R.id.message)
-    private val imageViewLevel: ImageView by bindView(R.id.level)
+    private val textViewMessage: TextView by bindView(R.id.textView_message)
+    private val imageViewLevel: ImageView by bindView(R.id.imageView_micLevel)
+
+    private val weatherDetailsView: FrameLayout by bindView(R.id.frameLayout_weatherDetails)
+    private val weatherDetailsWebView: WebView by bindView(R.id.webView_weatherDetails)
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<FrameLayout>
 
     private lateinit var viewModel: MainViewModel
 
@@ -35,6 +43,12 @@ class MainFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         return inflater.inflate(R.layout.main_fragment, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        bottomSheetBehavior = BottomSheetBehavior.from<FrameLayout>(weatherDetailsView)
+        webView_weatherDetails.settings.displayZoomControls = false
+        webView_weatherDetails.settings.setSupportZoom(false)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -48,7 +62,7 @@ class MainFragment : Fragment() {
             viewModel.startSpeechRecognizer(requireContext())
         }
 
-        viewModel.soundLevelLiveData
+        viewModel.micLevelLiveData
             .observe(this, Observer { level ->
                 imageViewLevel.animate()
                     .scaleX(level)
@@ -60,12 +74,22 @@ class MainFragment : Fragment() {
         viewModel.eventLiveData
             .observe(this, Observer { event ->
                 when (event) {
-                    MainViewModel.Event.KEYWORD_FOUND -> {
+                    is KeywordFoundEvent -> {
                         Toast.makeText(
                             requireContext(),
                             "Looking for current weather",
                             Toast.LENGTH_SHORT
                         ).show()
+
+                        viewModel.searchForWeather()
+
+                    }
+                    is ShowDetailedWeatherEvent -> {
+                        weatherDetailsWebView.loadUrl(
+                            event.link
+                        )
+
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     }
                     else -> {
                     }

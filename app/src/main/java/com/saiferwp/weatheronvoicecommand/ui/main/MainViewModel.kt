@@ -6,6 +6,7 @@ import android.speech.SpeechRecognizer
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.saiferwp.weatheronvoicecommand.App
 import com.saiferwp.weatheronvoicecommand.misc.WeatherSpeechRecognizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,12 +18,8 @@ class MainViewModel : ViewModel() {
     private var speechRecognizer: SpeechRecognizer? = null
     private lateinit var packageName: String
 
-    val soundLevelLiveData = MutableLiveData<Float>()
-    val eventLiveData = MutableLiveData<Event>()
-
-    enum class Event {
-        KEYWORD_FOUND
-    }
+    val micLevelLiveData = MutableLiveData<Float>()
+    val eventLiveData = MutableLiveData<MainViewEvent>()
 
     fun startSpeechRecognizer(context: Context) {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
@@ -34,15 +31,22 @@ class MainViewModel : ViewModel() {
         )
     }
 
+    fun searchForWeather() {
+        viewModelScope.launch {
+            val provider = App.component.getWeatherDataProvider()
+            val weatherData = provider.getWeatherData()
+            if (weatherData != null) {
+                eventLiveData.value = ShowDetailedWeatherEvent(
+                    provider.getWebViewLink(weatherData.id)
+                )
+            }
+        }
+    }
+
     private val speechRecognitionListener = object : WeatherSpeechRecognizer.Listener() {
 
-
-        override fun onEvent(eventCode: Int, data: Bundle) {
-            println("onEvent $eventCode")
-        }
-
         override fun onRmsChanged(rmsdB: Float) {
-            soundLevelLiveData.value = 1 + rmsdB / 10f
+            micLevelLiveData.value = 1 + rmsdB / 10f
         }
 
         override fun onResults(results: Bundle) {
@@ -50,12 +54,12 @@ class MainViewModel : ViewModel() {
                 results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             list?.forEach {
                 if (it.toLowerCase(Locale.ENGLISH).contains(WeatherSpeechRecognizer.KEYWORD)) {
-                    eventLiveData.value = Event.KEYWORD_FOUND
+                    eventLiveData.value = KeywordFoundEvent
                     return@forEach
                 }
             }
 
-            soundLevelLiveData.value = 1f
+            micLevelLiveData.value = 1f
 
             viewModelScope.launch(Dispatchers.Main) {
                 speechRecognizer?.stopListening()
@@ -70,8 +74,6 @@ class MainViewModel : ViewModel() {
             if (errorCode == SpeechRecognizer.ERROR_NO_MATCH
                 || errorCode == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
             ) {
-                println(errorCode)
-
                 viewModelScope.launch(Dispatchers.Main) {
                     speechRecognizer?.stopListening()
                     delay(300)
@@ -87,3 +89,8 @@ class MainViewModel : ViewModel() {
         speechRecognizer?.destroy()
     }
 }
+
+sealed class MainViewEvent
+
+object KeywordFoundEvent : MainViewEvent()
+data class ShowDetailedWeatherEvent(val link: String) : MainViewEvent()
