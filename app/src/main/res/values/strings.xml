@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">WeatherOnVoiceCommand</string>
+    <string name="button_listening">Listening…</string>
+    <string name="button_click_to_begin">Click to begin</string>
 </resources>

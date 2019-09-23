@@ -49,6 +49,8 @@ class MainFragment : Fragment() {
         bottomSheetBehavior = BottomSheetBehavior.from<FrameLayout>(weatherDetailsView)
         webView_weatherDetails.settings.displayZoomControls = false
         webView_weatherDetails.settings.setSupportZoom(false)
+
+        textViewMessage.text = getString(R.string.button_listening)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -90,6 +92,17 @@ class MainFragment : Fragment() {
                         )
 
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+                        textViewMessage.text = getString(R.string.button_click_to_begin)
+                        textViewMessage.setOnClickListener {
+                            viewModel.startSpeechRecognizer(requireContext())
+                            textViewMessage.text = getString(R.string.button_listening)
+                            textViewMessage.setOnClickListener(null)
+                            muteVolume()
+                        }
+                    }
+                    is UnmuteAudio -> {
+                        restoreVolume()
                     }
                     else -> {
                     }
